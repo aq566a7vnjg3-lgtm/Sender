@@ -307,7 +307,7 @@ body {
 }
 .transfer-box {
   margin-top: 22px;
-  width: min(300px, 82vw);
+  width: min(380px, 90vw);
   border: 1px solid #eee;
   border-radius: 12px;
   padding: 12px;
@@ -323,15 +323,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 150px;
+  min-height: 260px;
   background: #fff;
   border-radius: 8px;
   overflow: hidden;
 }
 .transfer-qr svg {
   display: block;
-  width: 150px;
-  height: 150px;
+  width: 260px;
+  height: 260px;
 }
 .transfer-note {
   margin-top: 8px;
@@ -748,6 +748,47 @@ function compactAnswerData(){
 
 const TRANSFER_SECRET = 'HondaCars-NaraChuo-MinamiKyoto-Questionnaire-QR-2026';
 const TRANSFER_SALT = 'HondaCarsQuestionnaireQRv2';
+const TRANSFER_FIELDS = [
+  '_date','cf','cn','cb_y','cb_m','cb_d','ct1','ct2','ce','cfam',
+  'q5_1','q5_2','q7_other','q9_amt','q10_amt','q11_co',
+  'q12_car','q12_yr','q12_km'
+];
+const TRANSFER_OPTION_KEYS = ['q1','q2','q3','q4','q4ev_charge','q6','q7','q8','q9','q10','q11_sel'];
+const TRANSFER_OPTIONS = {
+  q1:['車検が近い','お乗り換えを検討している','初めて車を購入する','家族構成が変わった','安全性能が気になる','燃費を良くしたい','故障・修理が増えた','その他'],
+  q2:['折込チラシ','通りがかり','ホームページ','Google検索','SNS','ご紹介','以前ご利用いただいた','近くに来たついで'],
+  q3:['新車を見たい','中古車を見たい','試乗したい','見積りが欲しい','査定してほしい','車の情報収集','保険の相談'],
+  q4:['FIT（ガソリン/ハイブリッド）','VEZEL（ハイブリッド）','ZR-V（ガソリン/ハイブリッド）','WR-V（ガソリン）','CR-V（ハイブリッド）','FREED（ガソリン/ハイブリッド）','STEP WGN（ガソリン/ハイブリッド）','ODYSSEY（ハイブリッド）','N-BOX / N-BOX JOY（ガソリン）','N-WGN（ガソリン）','N-ONE（ガソリン）','ACCORD（ハイブリッド）','CIVIC（ガソリン/ハイブリッド）','CIVIC TYPE R（ガソリン）','PRELUDE（ハイブリッド）','N-VAN e:','N-ONE e:','INSIGHT','Super-ONE','商用車 N-VAN','福祉車両 N-BOX（福祉）','中古車','その他'],
+  q4ev_charge:['ある','ない','検討中'],
+  q6:['デザイン','燃費','安全性能','室内の広さ','荷室の広さ','運転のしやすさ','維持費','月々のお支払い','購入価格','リセールバリュー','納期','その他'],
+  q7:['本日、ご契約まで検討している','1ヶ月以内','条件が合えば早めに決めたい','3ヶ月以内','まずは比較・検討したい','6ヶ月以内','1年以内','まだ決めていない','その他'],
+  q8:['～200万円','～250万円','～300万円','～350万円','～400万円','～450万円','～500万円','～600万円','600万円以上'],
+  q9:['現金','均等払いクレジット','残価設定クレジット','リース・サブスク（楽まる）','説明を聞いて比較したい'],
+  q10:['査定してほしい','金額だけ知りたい','今回は希望しない'],
+  q11_sel:['保険内容も相談したい','今回は相談しない']
+};
+
+function compactTransferData(){
+  const fields = [];
+  TRANSFER_FIELDS.forEach((key, idx) => {
+    const val = D[key];
+    if(val !== '' && val != null) fields.push([idx, val]);
+  });
+  const opts = [];
+  TRANSFER_OPTION_KEYS.forEach((key, idx) => {
+    const val = D[key];
+    if(Array.isArray(val) && val.length){
+      opts.push([idx, val.map(item => {
+        const code = TRANSFER_OPTIONS[key].indexOf(item);
+        return code >= 0 ? code : item;
+      })]);
+    } else if(val !== '' && val != null) {
+      const code = TRANSFER_OPTIONS[key].indexOf(val);
+      opts.push([idx, code >= 0 ? code : val]);
+    }
+  });
+  return [fields, opts];
+}
 
 function base64UrlFromBytes(bytes){
   let bin = '';
@@ -784,7 +825,7 @@ async function getTransferKey(){
 }
 
 async function encodeTransferData(){
-  const json = JSON.stringify({ app:'honda-questionnaire', ver:1, data:compactAnswerData() });
+  const json = JSON.stringify(compactTransferData());
   const packed = await gzipBytes(new TextEncoder().encode(json));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await getTransferKey();
@@ -793,13 +834,11 @@ async function encodeTransferData(){
     key,
     packed.bytes
   ));
-  const envelope = JSON.stringify({
-    v:2,
-    c:packed.alg,
-    i:base64UrlFromBytes(iv),
-    d:base64UrlFromBytes(cipher)
-  });
-  return 'HCNQ2:' + base64UrlFromBytes(new TextEncoder().encode(envelope));
+  const envelope = new Uint8Array(13 + cipher.length);
+  envelope[0] = packed.alg === 'gzip' ? 1 : 0;
+  envelope.set(iv, 1);
+  envelope.set(cipher, 13);
+  return 'HCNQ3:' + base64UrlFromBytes(envelope);
 }
 
 async function renderTransferQr(){
@@ -814,7 +853,7 @@ async function renderTransferQr(){
     qr.addData(payload);
     qr.make();
     box.innerHTML = qr.createSvgTag(4, 2);
-    note.textContent = `読み取り用HTMLでこのQRコードを読み取ってください。（データ量: ${payload.length}文字）`;
+    note.textContent = `読み取り用HTMLでこの軽量QRを読み取ってください。（データ量: ${payload.length}文字）`;
   } catch(err) {
     box.textContent = 'QRコードを作成できませんでした';
     note.textContent = '入力内容が多い場合は、スタッフ端末に直接入力する運用をご利用ください。';
