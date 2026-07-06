@@ -292,8 +292,9 @@ body {
   height: 100dvh;
   background: #fff;
   text-align: center;
-  padding: 40px 28px;
+  padding: 32px 28px;
   position: relative;
+  overflow-y: auto;
 }
 .thanks-icon { font-size: 64px; margin-bottom: 20px; }
 .thanks-title {
@@ -340,8 +341,7 @@ body {
   color: #999;
 }
 .thanks-print-btn {
-  position: absolute;
-  bottom: 32px; right: 28px;
+  margin-top: 16px;
   background: #ec6c00;
   color: #fff;
   border: none;
@@ -1111,8 +1111,14 @@ const steps = [
     [['q12_car','車名','例：Honda N-BOX'],['q12_yr','年式','例：R3年式']].forEach(([k,l,p])=>b.appendChild(tf(l,k,p)));
     // 走行距離（カンマ区切り）
     const kmWrap=tf('走行距離','q12_km','例：35,000km');
-    kmWrap.querySelector('input').oninput=e=>{
-      const raw=e.target.value.replace(/[^\d]/g,'');
+    const kmInput = kmWrap.querySelector('input');
+    kmInput.type = 'tel';
+    kmInput.inputMode = 'numeric';
+    kmInput.oninput=e=>{
+      D.q12_km=normalizeDigits(e.target.value);
+    };
+    kmInput.onblur=e=>{
+      const raw=normalizeDigits(e.target.value).replace(/[^\d]/g,'');
       const fmt=raw?raw.replace(/\B(?=(\d{3})+(?!\d))/g,','):'';
       D.q12_km=fmt; e.target.value=fmt;
     };
