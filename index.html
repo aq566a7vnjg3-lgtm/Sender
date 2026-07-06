@@ -749,9 +749,9 @@ function compactAnswerData(){
 const TRANSFER_SECRET = 'HondaCars-NaraChuo-MinamiKyoto-Questionnaire-QR-2026';
 const TRANSFER_SALT = 'HondaCarsQuestionnaireQRv2';
 const TRANSFER_FIELDS = [
-  '_date','cf','cn','cb_y','cb_m','cb_d','ct1','ct2','ce','cfam',
-  'q5_1','q5_2','q7_other','q9_amt','q10_amt','q11_co',
-  'q12_car','q12_yr','q12_km'
+  '_date','cf','cn','cb_y','cb_m','cb_d','ct1','ct2','ce','cz','ca','cj','cfam',
+  'q2o','q3o','q5_1','q5_2','q5_3','q5_4','q5_note','q7_other','q9_amt','q10_amt','q11_co',
+  'q12_car','q12_yr','q12_km','q12_sh_y','q12_sh_m','q12_buy','q12_shop'
 ];
 const TRANSFER_OPTION_KEYS = ['q1','q2','q3','q4','q4ev_charge','q6','q7','q8','q9','q10','q11_sel'];
 const TRANSFER_OPTIONS = {
@@ -853,7 +853,7 @@ async function renderTransferQr(){
     qr.addData(payload);
     qr.make();
     box.innerHTML = qr.createSvgTag(4, 2);
-    note.textContent = `読み取り用HTMLでこの軽量QRを読み取ってください。（データ量: ${payload.length}文字）`;
+    note.textContent = `読み取り用HTMLでこのQRコードを読み取ってください。（データ量: ${payload.length}文字）`;
   } catch(err) {
     box.textContent = 'QRコードを作成できませんでした';
     note.textContent = '入力内容が多い場合は、スタッフ端末に直接入力する運用をご利用ください。';
